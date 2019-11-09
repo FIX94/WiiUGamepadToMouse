@@ -21,7 +21,7 @@ namespace WiiUGamepadToMouse
         static void Main()
         {
             using (Process p = Process.GetCurrentProcess())
-                p.PriorityClass = ProcessPriorityClass.High;
+                p.PriorityClass = ProcessPriorityClass.RealTime;
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);

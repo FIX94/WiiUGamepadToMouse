@@ -32,11 +32,12 @@ namespace WiiUGamepadToMouse
         private bool touchleft = false;
         private bool prevleft = false;
         private bool prevright = false;
+        private bool prevmiddle = false;
         private int xOffset = 0;
         private int yOffset = 0;
 
         System.Timers.Timer ourTimer = null;
-        private bool didTick = false;
+        private int curTicks = 0;
         private bool wasScrolling = false;
         public Form1()
         {
@@ -67,6 +68,7 @@ namespace WiiUGamepadToMouse
             ourTimer = new System.Timers.Timer();
             ourTimer.AutoReset = true;
             ourTimer.Elapsed += TimerTick;
+            ourTimer.Interval = 80;
 
             if (Properties.Settings.Default.autoStart)
                 serverStart();
@@ -91,7 +93,7 @@ namespace WiiUGamepadToMouse
 
         private void TimerTick(Object sender, EventArgs e)
         {
-            didTick = true;
+            curTicks++;
         }
 
         private void updateMulti()
@@ -162,27 +164,23 @@ namespace WiiUGamepadToMouse
         }
 
         //just some helper code for scroll wheel repeat
-        private void changeTimerInterval(int interval)
-        {
-            //in case of new interval
-            if(ourTimer.Interval != interval)
-                ourTimer.Interval = interval;
-            //in case of it previously shut off
-            if (!ourTimer.Enabled)
-                ourTimer.Enabled = true;
-        }
-
         private bool checkWheelScroll(double inY)
         {
             bool ret = false;
-            if (inY > 0.9) changeTimerInterval(80);
-            else if (inY > 0.65) changeTimerInterval(160);
-            else if (inY > 0.4) changeTimerInterval(320);
-            else changeTimerInterval(640);
-            if (didTick)
+            //in case of it previously shut off
+            if (!ourTimer.Enabled)
+                ourTimer.Enabled = true;
+            else //already enabled, lets check
             {
-                ret = true;
-                didTick = false;
+                int cmpTicks = 6;
+                if (inY > 0.9) cmpTicks = 1;
+                else if (inY > 0.65) cmpTicks = 2;
+                else if (inY > 0.4) cmpTicks = 4;
+                if (curTicks >= cmpTicks)
+                {
+                    ret = true;
+                    curTicks = 0;
+                }
             }
             return ret;
         }
@@ -214,6 +212,8 @@ namespace WiiUGamepadToMouse
         private const int MouseEventLeftUp = 0x04;
         private const int MouseEventRightDown = 0x08;
         private const int MouseEventRightUp = 0x10;
+        private const int MouseEventMiddleDown = 0x20;
+        private const int MouseEventMiddleUp = 0x40;
         private const int MouseEventWheel = 0x0800;
         private const int MouseEventAbsolute = 0x8000;
 
@@ -233,8 +233,12 @@ namespace WiiUGamepadToMouse
             VPAD_BUTTON_Y = 0x00001000,
             VPAD_BUTTON_X = 0x00002000,
             VPAD_BUTTON_B = 0x00004000,
-            VPAD_BUTTON_A = 0x00008000;
-        
+            VPAD_BUTTON_A = 0x00008000,
+            VPAD_BUTTON_TV = 0x00010000,
+            VPAD_BUTTON_STICK_R = 0x00020000,
+            VPAD_BUTTON_STICK_L = 0x00040000;
+
+
         private void Serverthread()
         {
             //wait on port 4242 with a 200ms timeout for data receives
@@ -275,7 +279,7 @@ namespace WiiUGamepadToMouse
                 input[0].MouseInput.Time = 0;
                 input[0].MouseInput.ExtraInfo = IntPtr.Zero;
 
-                bool left = false, right = false;
+                bool left = false, right = false, middle = false;
                 //first, translate touchscreen info to mouse position
                 if (tpTouch != 0)
                 {
@@ -290,13 +294,15 @@ namespace WiiUGamepadToMouse
                     if (touchleft) left = true;
                 }
                 
-                //process buttons for left/right clicks
+                //process buttons for left/right/middle clicks
                 if ((hold & (VPAD_BUTTON_A | VPAD_BUTTON_ZL | VPAD_BUTTON_ZR)) != 0)
                     left = true;
                 if ((hold & (VPAD_BUTTON_B | VPAD_BUTTON_L | VPAD_BUTTON_R)) != 0)
                     right = true;
+                if ((hold & (VPAD_BUTTON_STICK_L | VPAD_BUTTON_STICK_R)) != 0)
+                    middle = true;
 
-                //set mouse left and right click status
+                //set mouse left/right/middle click status
                 if (!prevleft && left)
                     input[0].MouseInput.Flags |= MouseEventLeftDown;
                 else if(prevleft && !left)
@@ -306,9 +312,15 @@ namespace WiiUGamepadToMouse
                     input[0].MouseInput.Flags |= MouseEventRightDown;
                 else if (prevright && !right)
                     input[0].MouseInput.Flags |= MouseEventRightUp;
+                
+                if (!prevmiddle && middle)
+                    input[0].MouseInput.Flags |= MouseEventMiddleDown;
+                else if (prevmiddle && !middle)
+                    input[0].MouseInput.Flags |= MouseEventMiddleUp;
 
                 prevleft = left;
                 prevright = right;
+                prevmiddle = middle;
 
                 //set up mouse scroll wheel using analog sticks
                 if (lStickY > 0.15 || rStickY > 0.15)
@@ -336,7 +348,7 @@ namespace WiiUGamepadToMouse
                 {
                     wasScrolling = false;
                     ourTimer.Enabled = false;
-                    didTick = false;
+                    curTicks = 0;
                 }
 
                 //finally send our mouse data to OS
