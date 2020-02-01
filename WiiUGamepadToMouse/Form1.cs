@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (C) 2019 FIX94
+ * Copyright (C) 2019-2020 FIX94
  *
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
@@ -20,6 +20,7 @@ using System.Threading;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Globalization;
 
 namespace WiiUGamepadToMouse
 {
@@ -269,8 +270,8 @@ namespace WiiUGamepadToMouse
                 int tpTouch = Int32.Parse(wiiUGamePad.Element("tpTouch").Value);
                 int tpX = Int32.Parse(wiiUGamePad.Element("tpX").Value);
                 int tpY = Int32.Parse(wiiUGamePad.Element("tpY").Value);
-                Double lStickY = Double.Parse(wiiUGamePad.Element("lStickY").Value);
-                Double rStickY = Double.Parse(wiiUGamePad.Element("rStickY").Value);
+                Double lStickY = Double.Parse(wiiUGamePad.Element("lStickY").Value, CultureInfo.InvariantCulture);
+                Double rStickY = Double.Parse(wiiUGamePad.Element("rStickY").Value, CultureInfo.InvariantCulture);
 
                 //get our basic mouse data ready
                 Input[] input = new Input[1];

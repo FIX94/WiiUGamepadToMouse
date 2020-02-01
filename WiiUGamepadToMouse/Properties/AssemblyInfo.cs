@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("WiiUGamepadToMouse")]
-[assembly: AssemblyCopyright("Copyright ©  2019 FIX94")]
+[assembly: AssemblyCopyright("Copyright ©  2019-2020 FIX94")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
